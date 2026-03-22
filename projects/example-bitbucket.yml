@@ -1,0 +1,100 @@
+# ============================================================
+# Example: Bitbucket project (Ruby on Rails backend)
+# ============================================================
+# Copy this file, rename to your project, and adjust values.
+# Git tokens are referenced by env var name — never paste secrets here.
+# ============================================================
+
+name: "Rails Monolith"
+repoUrl: "https://bitbucket.org/myworkspace/rails-monolith"
+provider: bitbucket
+defaultBranch: develop
+
+# --- Git Authentication ---
+auth:
+  method: https
+  # Name of the env var holding your Bitbucket App Password
+  # Create at: Bitbucket > Settings > App passwords (permissions: repo read/write, PR write)
+  # Set it in .env: BITBUCKET_TOKEN_MYWORKSPACE=xxxxxxxx
+  tokenEnvVar: BITBUCKET_TOKEN_MYWORKSPACE
+  # For SSH instead:
+  # method: ssh
+  # sshKeyPath: /home/agent/.ssh/id_ed25519_bitbucket
+  commitAuthor:
+    name: "Dev Automation"
+    email: "dev-auto@mycompany.com"
+
+# --- Branch naming ---
+branchPattern: "feature/{{ticketId}}-{{slug}}"
+
+# --- Claude Code CLI settings ---
+claude:
+  model: sonnet
+  effortLevel: high
+  maxBudgetUsd: 8.00
+  permissionMode: bypassPermissions
+  allowedTools:
+    - Bash
+    - Read
+    - Edit
+    - Write
+    - Glob
+    - Grep
+  # Path to a custom AGENT.md inside the repo (relative to repo root)
+  # agentMdPath: .claude/AGENT.md
+  appendSystemPrompt: "This is a Ruby on Rails 7 app with PostgreSQL and Sidekiq. Follow Rails conventions strictly. Use RSpec for tests. Run rubocop before committing."
+
+# --- Commands ---
+commands:
+  install: "bundle install"
+  preAnalysis:
+    - "bin/rails db:migrate"
+  postImplementation:
+    - "bundle exec rubocop --autocorrect"
+    - "bundle exec rspec"
+
+# --- Pull Request ---
+pr:
+  titlePattern: "{{ticketId}}: {{summary}}"
+  bodyTemplate: |
+    ## {{ticketId}}
+
+    {{ticketLink}}
+
+    ## Changes
+
+    {{summary}}
+
+    ```
+    {{diffStat}}
+    ```
+
+    ---
+    _Review checklist:_
+    - [ ] Tests passing
+    - [ ] Rubocop clean
+    - [ ] Migration reversible
+  draft: false
+  labels: []
+  reviewers:
+    - tech-lead
+
+# --- Discord notifications ---
+discord:
+  webhookUrl: "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+  notifyOn:
+    - job_started
+    - pr_created
+    - pr_failed
+    - job_failed
+
+# --- Bitbucket-specific config ---
+providerConfig:
+  workspace: myworkspace
+  repoSlug: rails-monolith
+
+# --- Limits ---
+concurrency: 1
+timeoutMinutes: 30
+maxRetries: 2
+isolation: worktree

@@ -1,0 +1,66 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - REPOS_DIR=/data/repos
+      - REPORTS_DIR=/data/reports
+    volumes:
+      - ./projects:/app/projects:ro
+      - ./agents:/app/agents:ro
+      - repos-data:/data/repos
+      - reports-data:/data/reports
+      - ${CLAUDE_CONFIG_DIR:-~/.claude}:/home/agent/.claude:ro
+      - ${SSH_KEY_DIR:-~/.ssh}:/home/agent/.ssh:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Dev mode: mount source and use tsx watch
+  app-dev:
+    image: node:20-slim
+    working_dir: /app
+    command: bash -c "apt-get update && apt-get install -y git openssh-client && npm install -g @anthropic-ai/claude-code && npm install && npx tsx watch src/index.ts"
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - REPOS_DIR=/data/repos
+      - REPORTS_DIR=/data/reports
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - repos-data:/data/repos
+      - reports-data:/data/reports
+      - ${CLAUDE_CONFIG_DIR:-~/.claude}:/root/.claude:ro
+      - ${SSH_KEY_DIR:-~/.ssh}:/root/.ssh:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - dev
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  repos-data:
+  reports-data:
+  redis-data:

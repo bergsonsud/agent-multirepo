@@ -1,0 +1,98 @@
+# ============================================================
+# Example: GitHub project (Node.js + Express backend)
+# ============================================================
+# Copy this file, rename to your project, and adjust values.
+# Git tokens are referenced by env var name — never paste secrets here.
+# ============================================================
+
+name: "My SaaS Backend"
+repoUrl: "https://github.com/myorg/saas-backend"
+provider: github
+defaultBranch: main
+
+# --- Git Authentication ---
+auth:
+  method: https
+  # Name of the env var holding your GitHub Personal Access Token or Fine-grained token
+  # Set it in .env: GITHUB_TOKEN_MYORG=ghp_xxxxx
+  tokenEnvVar: GITHUB_TOKEN_MYORG
+  # For SSH instead:
+  # method: ssh
+  # sshKeyPath: /home/agent/.ssh/id_ed25519
+  commitAuthor:
+    name: "Dev Automation"
+    email: "dev-auto@myorg.com"
+
+# --- Branch naming ---
+# Available placeholders: {{ticketId}}, {{slug}}, {{timestamp}}
+branchPattern: "auto/{{ticketId}}-{{slug}}"
+
+# --- Claude Code CLI settings ---
+claude:
+  model: sonnet
+  effortLevel: high
+  maxBudgetUsd: 5.00
+  permissionMode: bypassPermissions
+  allowedTools:
+    - Bash
+    - Read
+    - Edit
+    - Write
+    - Glob
+    - Grep
+  # Path to a custom AGENT.md inside the repo (relative to repo root)
+  # If not set, uses agents/default.md from this server
+  # agentMdPath: .claude/AGENT.md
+  # Extra system prompt appended to every run
+  # appendSystemPrompt: "This is a Node.js + Express + PostgreSQL backend. Always use the existing patterns for controllers, services, and repositories."
+
+# --- Commands ---
+commands:
+  install: "npm ci"
+  # preAnalysis runs before Claude starts (useful for codegen, migrations, etc.)
+  # preAnalysis:
+  #   - "npx prisma generate"
+  postImplementation:
+    - "npm run lint:fix"
+    - "npm run build"
+    - "npm test"
+
+# --- Pull Request ---
+pr:
+  titlePattern: "{{ticketId}}: {{summary}}"
+  # bodyTemplate supports: {{ticketLink}}, {{ticketId}}, {{summary}}, {{diffStat}}
+  # If not set, a default body is generated
+  # bodyTemplate: |
+  #   ## {{ticketId}}
+  #
+  #   {{ticketLink}}
+  #
+  #   ## Summary
+  #
+  #   {{summary}}
+  draft: true
+  labels:
+    - automated
+  reviewers:
+    - lead-dev
+    - backend-team
+
+# --- Discord notifications ---
+discord:
+  webhookUrl: "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+  notifyOn:
+    - job_started
+    - pr_created
+    - pr_failed
+    - job_failed
+
+# --- GitHub-specific config ---
+providerConfig:
+  owner: myorg
+  repo: saas-backend
+
+# --- Limits ---
+concurrency: 2
+timeoutMinutes: 20
+maxRetries: 1
+isolation: worktree
